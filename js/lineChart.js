@@ -2,12 +2,11 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 
 export default function raceChart(selector, data, attributes = { width: 700, height: 400, margin: { top: 50, right: 30, bottom: 70, left: 60 } }) {
 
-    // Set up dimensions and margins
     const { width, height, margin } = attributes;
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
-    // Create the SVG container
+    // Maak de SVG-container
     const svg = d3.select(selector)
         .append("svg")
         .attr("width", width)
@@ -15,28 +14,27 @@ export default function raceChart(selector, data, attributes = { width: 700, hei
         .style("background-color", "#f4f4f4")
         .style("border-radius", "8px");
 
-    // Parse date and prepare data
+    // Datum parsen en jaar toevoegen
     data.forEach(d => {
         d.release_date = new Date(d.release_date);
-        d.year = d.release_date.getFullYear();  // Extract year from release date
+        d.year = d.release_date.getFullYear();  // Haal jaar uit releasedatum
     });
 
-    // Group data by year
+    // De data groeperen per jaar
     const yearGroups = d3.group(data, d => d.year);
 
-    // Set up scales for x (popularity) and y (track rank)
     const xScale = d3.scaleLinear()
-        .domain([0, 100])  // Popularity range (0 to 100)
+        .domain([0, 100])  
         .range([0, innerWidth]);
 
     const yScale = d3.scaleBand()
-        .domain(d3.range(10))  // Limit to top 10 tracks per year
+    // Alleen de top 10 populairste nummers per jaar weergeven
+        .domain(d3.range(10))  
         .range([0, innerHeight])
         .padding(0.1);
 
-    // Add X and Y axis
     const xAxis = d3.axisBottom(xScale).ticks(5);
-    const yAxis = d3.axisLeft(yScale).tickFormat(i => `Rank ${i + 1}`).ticks(10);
+    const yAxis = d3.axisLeft(yScale).tickFormat(i => `Rang ${i + 1}`).ticks(10);
 
     svg.append("g")
         .attr("transform", `translate(${margin.left}, ${innerHeight + margin.top})`)
@@ -52,28 +50,27 @@ export default function raceChart(selector, data, attributes = { width: 700, hei
         .style("font-size", "12px")
         .style("fill", "#333");
 
-    // Create a placeholder for the track bars
+    // Maak een canvas voor de track balken
     const trackBarsGroup = svg.append("g")
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-    // Create a race animation function
     function animateRace(yearIndex = 0) {
         const currentYearData = yearGroups.get(Array.from(yearGroups.keys())[yearIndex]) || [];
 
-        // Sort the tracks by popularity
+        //De tracks sorteren op populariteit
         currentYearData.sort((a, b) => b.popularity - a.popularity);
 
-        // Limit to the top 10 tracks
+        // Beperk tot de top 10 tracks
         const topTracks = currentYearData.slice(0, 10);
 
-        // Bind data to the bars (rectangles representing tracks)
+        // Koppel data aan de balken (rechthoeken die tracks vertegenwoordigen)
         const bars = trackBarsGroup.selectAll("rect")
             .data(topTracks, d => d.track_name);
 
-        // Remove bars that are no longer in the top 10 for this year
+        // Verwijder balken die niet langer in de top 10 van dit jaar staan
         bars.exit().transition().duration(500).attr("width", 0).remove();
 
-        // Enter and update the bars
+        // De  balken toe en werk ze bij
         bars.enter().append("rect")
             .attr("x", 0)
             .attr("y", (d, i) => yScale(i))
@@ -81,20 +78,21 @@ export default function raceChart(selector, data, attributes = { width: 700, hei
             .attr("height", yScale.bandwidth())
             .attr("fill", "#4caf50")
             .attr("stroke", "#333")
-            .merge(bars)  // Merge enter and update
+            .merge(bars)  
             .transition()
             .duration(1000)
             .ease(d3.easeCubicInOut)
-            .attr("width", d => xScale(d.popularity));  // Set width based on popularity
+             // Stel breedte in op basis van populariteit
+            .attr("width", d => xScale(d.popularity)); 
 
-        // Add text labels for the track names
+        // De tekstlabels toevoegen voor de tracknamen
         const labels = trackBarsGroup.selectAll("text")
             .data(topTracks, d => d.track_name);
 
-        // Remove labels that are no longer in the top 10
+        // De oude labels verwijderen
         labels.exit().transition().duration(500).style("opacity", 0).remove();
 
-        // Add or update the labels
+        // Voeg labels toe 
         labels.enter().append("text")
             .attr("x", 10)
             .attr("y", (d, i) => yScale(i) + yScale.bandwidth() / 2)
@@ -107,16 +105,17 @@ export default function raceChart(selector, data, attributes = { width: 700, hei
             .ease(d3.easeCubicInOut)
             .text(d => d.track_name);
 
-        // Move to the next year
+        // Ga naar het volgende jaar
         if (yearIndex < Array.from(yearGroups.keys()).length - 1) {
-            setTimeout(() => animateRace(yearIndex + 1), 1500); // Wait before moving to the next year
+            //timer voor het afwachten van de animatie voordat de volgende animatie begint
+            setTimeout(() => animateRace(yearIndex + 1), 1500); 
         }
     }
 
-    // Start the animation from the first year
+    // Start de animatie vanaf het eerste jaar
     animateRace();
 
-    // Add a play/pause button for interactivity
+    // Een play/pauze knop toevoegen voor interactiviteit
     const playPauseButton = d3.select(selector).append("button")
         .text("Pause")
         .style("position", "absolute")
@@ -133,7 +132,8 @@ export default function raceChart(selector, data, attributes = { width: 700, hei
         isPlaying = !isPlaying;
         if (isPlaying) {
             playPauseButton.text("Pause");
-            animateRace();  // Restart the animation
+            // Opnieuw opstarten van animatie
+            animateRace();  
         } else {
             playPauseButton.text("Play");
         }
